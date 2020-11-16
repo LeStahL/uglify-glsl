@@ -3,8 +3,11 @@
 #include "intermediate.h"
 
 #include <iostream>
+#include <sstream>
+#include <fstream>
 #include <string>
 #include <list>
+#include <vector>
 
 void printLicense() {
     std::cout << licenseString << std::endl;
@@ -37,6 +40,15 @@ void checkArgumentPresent(int i, int argc, std::string dependentArgument) {
     }
 }
 
+std::list<std::string> split(std::string str) {
+    std::list<std::string> splittedString;
+    std::istringstream f(str);
+
+    while(std::getline(f, str, ','))
+        splittedString.push_back(str);
+    return splittedString;
+}
+
 int main(int argc, char **args) {
     std::string executableName = args[0];
     std::list<std::string> includeDirectories;
@@ -44,12 +56,15 @@ int main(int argc, char **args) {
     for(int i = 1; i < argc; ++i) {
         std::string argument = std::string(args[i]);
 
-        if(argument == "-I") {
+        if(argument == "-I" || argument == "--include-dir") {
             ++i;
+            checkArgumentPresent(i, argc, argument);
             
+            includeDirectories.merge(split(std::string(args[i])));
         }
-        else if(argument.starts_with("-I"))
-            includeDirectories.push_back(argument.substr(2));
+        else if(argument.starts_with("-I")) {
+            includeDirectories.merge(split(std::string(argument.substr(2))));
+        }
         else if(argument == "-h" || argument == "--help") {
             printHelp();
             exit(0);
