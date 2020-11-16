@@ -76,6 +76,7 @@ int main(int argc, char **args) {
     std::vector<std::string> includeDirectories,
         shaderFileNames,
         shaderSources;
+    std::vector<glslang::TShader *> shaders;
     bool saveContextModel = false;
 
     for(int i = 1; i < argc; ++i) {
@@ -140,7 +141,21 @@ int main(int argc, char **args) {
             exit(-1);
         }
 
-        glslang::TShader shader();
+        glslang::TShader *shader;
+        if(fileExtension == "frag")
+            shader = new glslang::TShader(EShLangFragment);
+        else if(fileExtension == "vert")
+            shader = new glslang::TShader(EShLangVertex);
+        else if(fileExtension == "geom")
+            shader = new glslang::TShader(EShLangGeometry);
+        else if(fileExtension == "comp")
+            shader = new glslang::TShader(EShLangCompute);
+    }
+
+
+    // Clean up the shader list before leaving.
+    for(int i = 0; i < shaders.size(); ++i) {
+        delete shaders.at(i);
     }
 
     return 0;
