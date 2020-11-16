@@ -27,7 +27,8 @@ void printHelp() {
         << "--glsl: Output result to shader source file" << std::endl
         << "--header: Output result to C header file" << std::endl
         << "--header-constant [IDENTIFIER]: Change the identifier of the exported source constant" << std::endl
-        << "-g [FILE] --generate-context-model" << std::endl
+        << "-g [FILE] --generate-context-model [FILE]: Creates the context model of all input files and saves it in FILE." << std::endl
+        << "-c [FILE] --context-model [FILE]: Use context model from FILE for minification" << std::endl
         << "-l, --license: Print the license and exit" << std::endl;
 }
 
@@ -40,8 +41,8 @@ void checkArgumentPresent(int i, int argc, std::string dependentArgument) {
     }
 }
 
-std::list<std::string> split(std::string str) {
-    std::list<std::string> splittedString;
+std::vector<std::string> split(std::string str) {
+    std::vector<std::string> splittedString;
     std::istringstream f(str);
 
     while(std::getline(f, str, ','))
@@ -49,9 +50,33 @@ std::list<std::string> split(std::string str) {
     return splittedString;
 }
 
+std::string fileContent(std::string fileName) {
+    std::ifstream t(fileName);
+    std::string str;
+
+    if(!t.is_open()) {
+        std::cout << "Error: Could not open file " << fileName
+            << "." << std::endl;
+        exit(0);
+    }
+
+    t.seekg(0, std::ios::end);   
+    str.reserve(t.tellg());
+    t.seekg(0, std::ios::beg);
+
+    str.assign((std::istreambuf_iterator<char>(t)),
+        std::istreambuf_iterator<char>());
+    
+    return str;
+}
+
 int main(int argc, char **args) {
-    std::string executableName = args[0];
-    std::list<std::string> includeDirectories;
+    std::string executableName = args[0],
+        contextModelFilename;
+    std::vector<std::string> includeDirectories,
+        shaderFileNames,
+        shaderSources;
+    bool saveContextModel = false;
 
     for(int i = 1; i < argc; ++i) {
         std::string argument = std::string(args[i]);
@@ -60,10 +85,12 @@ int main(int argc, char **args) {
             ++i;
             checkArgumentPresent(i, argc, argument);
             
-            includeDirectories.merge(split(std::string(args[i])));
+            std::vector splittedString = split(std::string(args[i]));
+            includeDirectories.insert(includeDirectories.end(), splittedString.begin(), splittedString.end());
         }
         else if(argument.starts_with("-I")) {
-            includeDirectories.merge(split(std::string(argument.substr(2))));
+            std::vector splittedString = split(std::string(argument.substr(2)));
+            includeDirectories.insert(includeDirectories.end(), splittedString.begin(), splittedString.end());
         }
         else if(argument == "-h" || argument == "--help") {
             printHelp();
@@ -73,6 +100,23 @@ int main(int argc, char **args) {
             printLicense();
             exit(0);
         }
+        else if(argument == "-g" || argument == "--generate-context-model") {
+            saveContextModel = true;
+
+            ++i;
+            checkArgumentPresent(i, argc, argument);
+
+            contextModelFilename = std::string(args[i]);
+        }
+        else
+            shaderFileNames.push_back(std::string(args[i]));
+    }
+
+    // Load all shader files and create their intermediate representation.
+    // Remove comments and unneeded spaces and CRLFs. Then proceed with 
+    // any analysis specified.
+    for(int i = 0; i < shaderFileNames.size(); ++i) {
+        shaderSources.push_back(fileContent(shaderFileNames[i]));
     }
 
     return 0;
