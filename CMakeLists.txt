@@ -5,8 +5,11 @@ project(uglify-glsl)
 
 add_subdirectory(thirdparty/glslang)
 
-include_directories(thirdparty/glslang/glslang/Include)
 
 set(UGLIFY_GLSL_SOURCES main.cpp)
 add_executable(uglify-glsl ${UGLIFY_GLSL_SOURCES})
+target_include_directories(uglify-glsl PUBLIC
+    thirdparty/glslang/glslang/Include
+    thirdparty/glslang/glslang/Public
+)
 add_dependencies(uglify-glsl glslang)

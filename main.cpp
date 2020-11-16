@@ -1,6 +1,6 @@
 #include "license.h"
 
-#include "intermediate.h"
+#include "ShaderLang.h"
 
 #include <iostream>
 #include <sstream>
@@ -41,11 +41,11 @@ void checkArgumentPresent(int i, int argc, std::string dependentArgument) {
     }
 }
 
-std::vector<std::string> split(std::string str) {
+std::vector<std::string> split(std::string str, char splitChar) {
     std::vector<std::string> splittedString;
     std::istringstream f(str);
 
-    while(std::getline(f, str, ','))
+    while(std::getline(f, str, splitChar))
         splittedString.push_back(str);
     return splittedString;
 }
@@ -57,7 +57,7 @@ std::string fileContent(std::string fileName) {
     if(!t.is_open()) {
         std::cout << "Error: Could not open file " << fileName
             << "." << std::endl;
-        exit(0);
+        exit(-1);
     }
 
     t.seekg(0, std::ios::end);   
@@ -85,11 +85,11 @@ int main(int argc, char **args) {
             ++i;
             checkArgumentPresent(i, argc, argument);
             
-            std::vector splittedString = split(std::string(args[i]));
+            std::vector splittedString = split(std::string(args[i]), ',');
             includeDirectories.insert(includeDirectories.end(), splittedString.begin(), splittedString.end());
         }
         else if(argument.starts_with("-I")) {
-            std::vector splittedString = split(std::string(argument.substr(2)));
+            std::vector splittedString = split(std::string(argument.substr(2)), ',');
             includeDirectories.insert(includeDirectories.end(), splittedString.begin(), splittedString.end());
         }
         else if(argument == "-h" || argument == "--help") {
@@ -112,11 +112,35 @@ int main(int argc, char **args) {
             shaderFileNames.push_back(std::string(args[i]));
     }
 
+    // Initialize glslang
+    TBuiltInResource Resources;
+
     // Load all shader files and create their intermediate representation.
     // Remove comments and unneeded spaces and CRLFs. Then proceed with 
     // any analysis specified.
+    std::vector<std::string> supportedFileExtensions;
+    supportedFileExtensions.push_back(std::string("frag"));
+    supportedFileExtensions.push_back(std::string("vert"));
+    supportedFileExtensions.push_back(std::string("geom"));
+    supportedFileExtensions.push_back(std::string("comp"));
+
     for(int i = 0; i < shaderFileNames.size(); ++i) {
         shaderSources.push_back(fileContent(shaderFileNames[i]));
+
+        std::vector<std::string> fileNameComponents = split(shaderFileNames[i], '.');
+        if(fileNameComponents.size() < 1) {
+            std::cout << "Error: Provided shader file " << shaderFileNames[i] << " does not have a file extension. uglify-glsl needs one however to determine the correct grammar for the shader." << std::endl;
+            exit(-1);
+        }
+
+        std::string fileExtension = fileNameComponents[fileNameComponents.size() - 1];
+
+        if(!std::count(supportedFileExtensions.begin(), supportedFileExtensions.end(), fileExtension)) {
+            std::cout << "Error: Provided shader file " << shaderFileNames[i] << " has unsupported file extension " << fileExtension << "." << std::endl;
+            exit(-1);
+        }
+
+        glslang::TShader shader();
     }
 
     return 0;
