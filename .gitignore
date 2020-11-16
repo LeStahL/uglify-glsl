@@ -1,3 +1,6 @@
+# IDE trash
+.vscode
+
 # Build artifacts
 build/
 builddir/
